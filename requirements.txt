@@ -1,0 +1,4 @@
+pyTelegramBotAPI>=4.14.0
+SpeechRecognition>=3.8.1
+fastapi>=0.95.0
+uvicorn>=0.21.1
