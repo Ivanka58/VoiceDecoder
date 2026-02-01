@@ -5,7 +5,11 @@ from fastapi import FastAPI
 import uvicorn
 
 # Получаем токен бота из переменных окружения Render
-BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+
+if BOT_TOKEN is None:
+    raise ValueError("BOT_TOKEN is not set in environment variables.")
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Инициализируем FastAPI приложение
