@@ -3,6 +3,7 @@ import telebot
 import speech_recognition as sr
 from fastapi import FastAPI
 import uvicorn
+import subprocess
 
 # Получаем токен бота из переменных окружения Render
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -35,22 +36,39 @@ def transcribe_audio(audio_file):
     except sr.RequestError:
         return "Ошибка при запросе к сервису распознавания речи."
 
-@bot.message_handler(content_types=['voice'])
+def convert_audio_to_wav(audio_file):
+    """Конвертация аудио в формат WAV."""
+    output_file = "output.wav"
+    subprocess.run(["ffmpeg", "-i", audio_file, output_file])
+    return output_file
+
+@bot.message_handler(content_types=['voice', 'audio'])
 def handle_voice(message):
     # Отправляем промежуточное сообщение о транскрибировании
     temp_msg = bot.send_message(message.chat.id, "Транскрибирую в текст...")
     
     try:
-        # Скачиваем голосовое сообщение
-        file_info = bot.get_file(message.voice.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+        if message.content_type == 'voice':
+            # Скачиваем голосовое сообщение
+            file_info = bot.get_file(message.voice.file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+            audio_file = 'voice.ogg'
+        elif message.content_type == 'audio':
+            # Скачиваем аудио файл
+            file_info = bot.get_file(message.audio.file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+            audio_file = 'audio.mp3'
         
         # Сохраняем файл
-        with open('voice.ogg', 'wb') as new_file:
+        with open(audio_file, 'wb') as new_file:
             new_file.write(downloaded_file)
         
+        # Конвертируем аудио в WAV, если это необходимо
+        if audio_file.endswith('.mp3'):
+            audio_file = convert_audio_to_wav(audio_file)
+        
         # Транскрибируем аудио
-        text = transcribe_audio('voice.ogg')
+        text = transcribe_audio(audio_file)
         
         # Удаляем промежуточное сообщение
         bot.delete_message(temp_msg.chat.id, temp_msg.message_id)
